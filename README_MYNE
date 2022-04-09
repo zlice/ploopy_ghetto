@@ -1,0 +1,13 @@
+clone ploopy
+
+git make sub-module
+
+xi hidapi
+
+pip3 -r requirements.txt
+
+sudo make -kb ploopyco/mouse ploopyco/myne:default
+
+qmk compile -kb ploopyco/myne -km default
+
+sudo qmk flash -kb ploopyco/myne -km default
