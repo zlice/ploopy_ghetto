@@ -53,12 +53,12 @@
 #ifndef PLOOPY_DPI_DEFAULT
 #    define PLOOPY_DPI_DEFAULT 0
 #endif
-#ifndef PLOOPY_DRAGSCROLL_DPI
-#    define PLOOPY_DRAGSCROLL_DPI 100 // Fixed-DPI Drag Scroll
-#endif
-#ifndef PLOOPY_DRAGSCROLL_MULTIPLIER
-#    define PLOOPY_DRAGSCROLL_MULTIPLIER 0.75 // Variable-DPI Drag Scroll
-#endif
+//#ifndef PLOOPY_DRAGSCROLL_DPI
+//#    define PLOOPY_DRAGSCROLL_DPI 100 // Fixed-DPI Drag Scroll
+//#endif
+//#ifndef PLOOPY_DRAGSCROLL_MULTIPLIER
+//#    define PLOOPY_DRAGSCROLL_MULTIPLIER 0.75 // Variable-DPI Drag Scroll
+//#endif
 
 keyboard_config_t keyboard_config;
 uint16_t          dpi_array[] = PLOOPY_DPI_OPTIONS;
@@ -76,7 +76,7 @@ uint16_t MotionStart       = 0;      // Timer for accel, 0 is resting state
 uint16_t lastScroll        = 0;      // Previous confirmed wheel event
 //uint8_t  OptLowPin         = OPT_ENC1;
 bool     debug_encoder     = false;
-bool     is_drag_scroll    = false;
+//bool     is_drag_scroll    = false;
 
 
 // hall sensor tracking vars
@@ -88,6 +88,7 @@ uint16_t pole_last_1 = 0, pole_last_2 = 0; // last val
 uint16_t pole_prev_1 = 0, pole_prev_2 = 0; // last 2 back val
 uint16_t ticks = 0; // buffer tick for physical oops
 uint16_t skip_8 = 0; // fake 8mhz
+uint16_t pressed_state = 0; // get col size
 
 // orig
 //unsigned long cur_clk = 0, last_clk = 0, delta_time = 0, poll_time = 0;
@@ -105,6 +106,15 @@ __attribute__((weak)) void process_wheel_user(report_mouse_t* mouse_report, int1
 __attribute__((weak)) void process_wheel(report_mouse_t* mouse_report) {
     // myne - hall init
 
+    // fake 8mhz
+    if (skip_8 == 0) {
+      skip_8 += 1;
+    }
+    else {
+      skip_8 = 0;
+      return;
+    }
+
     // proper qmk way to read is with mux
     uint16_t val1 = analogReadPin(HAL1);
     //_delay_ms(100);
@@ -117,14 +127,9 @@ __attribute__((weak)) void process_wheel(report_mouse_t* mouse_report) {
     dprintf("%u - %u\n",val1, val2);
     //dprintf("%d - %d\n",pinToMux(HAL1), pinToMux(HAL2) );
 
-    // fake 8mhz
-    if (skip_8 == 0) {
-      skip_8 += 1;
-    }
-    else {
-      skip_8 = 0;
+    if (pressed_state != 0)
       return;
-    }
+
     // TODO: Replace this with interrupt driven code,  polling is S L O W
     // Lovingly ripped from the Ploopy Source
 
@@ -284,6 +289,10 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
         dprintf("KL: kc: %u, col: %u, row: %u, pressed: %u\n", keycode, record->event.key.col, record->event.key.row, record->event.pressed);
     }
 */
+
+    pressed_state = pressed_state & ~(1 << record->event.key.col);
+    pressed_state |= record->event.pressed << record->event.key.col;
+
     // Update Timer to prevent accidental scrolls
     if ((record->event.key.col == 1) && (record->event.key.row == 0)) {
         lastMidClick      = timer_read();
@@ -300,6 +309,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
         pmw_set_cpi(dpi_array[keyboard_config.dpi_config]);
     }
 
+/*
     if (keycode == DRAG_SCROLL) {
 #ifndef PLOOPY_DRAGSCROLL_MOMENTARY
         if (record->event.pressed)
@@ -313,6 +323,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
         pmw_set_cpi(is_drag_scroll ? (dpi_array[keyboard_config.dpi_config] * PLOOPY_DRAGSCROLL_MULTIPLIER) : dpi_array[keyboard_config.dpi_config]);
 #endif
     }
+*/
 
 /* If Mousekeys is disabled, then use handle the mouse button
  * keycodes.  This makes things simpler, and allows usage of
@@ -375,6 +386,7 @@ void pointing_device_task(void) {
     process_wheel(&mouse_report);
     process_mouse(&mouse_report);
 
+/*
     if (is_drag_scroll) {
         mouse_report.h = mouse_report.x;
 #ifdef PLOOPY_DRAGSCROLL_INVERT
@@ -386,6 +398,7 @@ void pointing_device_task(void) {
         mouse_report.x = 0;
         mouse_report.y = 0;
     }
+*/
 
     pointing_device_set_report(mouse_report);
     pointing_device_send();
