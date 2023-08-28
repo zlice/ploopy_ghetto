@@ -1,6 +1,6 @@
 clone ploopy
 
-git make sub-module
+# git make sub-module - nope, git doesnt even have that anymore? 2023 aug 10
 
 xi hidapi
 
@@ -8,6 +8,15 @@ pip3 -r requirements.txt
 
 sudo make -kb ploopyco/mouse ploopyco/myne:default
 
+
+
+
+# copy this to 'current' qmk, then 'qmk x' commands should compile
+
+# works, updated qmk 2023 aug 10
+
 qmk compile -kb ploopyco/myne -km default
 
 sudo qmk flash -kb ploopyco/myne -km default
+
+

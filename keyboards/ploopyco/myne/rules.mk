@@ -24,6 +24,7 @@ BACKLIGHT_ENABLE = no       # Enable keyboard backlight functionality
 RGBLIGHT_ENABLE = no        # Enable keyboard RGB underglow
 AUDIO_ENABLE = no           # Audio output
 POINTING_DEVICE_ENABLE = yes
+POINTING_DEVICE_DRIVER = pmw3360
 MOUSEKEY_ENABLE = yes       # Mouse keys
 
 QUANTUM_LIB_SRC += analog.c spi_master.c

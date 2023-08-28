@@ -96,14 +96,7 @@ uint16_t cur_clk = 0, last_clk = 0, delta_time = 0, poll_time = 0;
 // ploopys
 uint16_t lastMidClick      = 0;      // Stops scrollwheel from being read if it was pressed
 
-/*
-__attribute__((weak)) void process_wheel_user(report_mouse_t* mouse_report, int16_t h, int16_t v) {
-    mouse_report->h = h;
-    mouse_report->v = v;
-}
-*/
-
-__attribute__((weak)) void process_wheel(report_mouse_t* mouse_report) {
+void process_wheel(void) {
     // myne - hall init
 
     // fake 8mhz
@@ -230,68 +223,32 @@ __attribute__((weak)) void process_wheel(report_mouse_t* mouse_report) {
     //process_wheel_user(mouse_report, mouse_report->h, (int)(mouse_report->v + (dir * OPT_SCALE)));
 }
 
-__attribute__((weak)) void process_mouse_user(report_mouse_t* mouse_report, int16_t x, int16_t y) {
-    //mouse_report->x = x;
-    //mouse_report->y = y;
-    // myne oops - invert
-    mouse_report->x = x * -1;
-    mouse_report->y = y * -1;
-}
+report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
+    process_wheel();
 
-__attribute__((weak)) void process_mouse(report_mouse_t* mouse_report) {
-    report_pmw_t data = pmw_read_burst();
-    if (data.isOnSurface && data.isMotion) {
-        // Reset timer if stopped moving
-        if (!data.isMotion) {
-            if (MotionStart != 0) MotionStart = 0;
-            return;
-        }
+//    if (is_drag_scroll) {
+//        mouse_report.h = mouse_report.x;
+//#ifdef PLOOPY_DRAGSCROLL_INVERT
+//        // Invert vertical scroll direction
+//        mouse_report.v = -mouse_report.y;
+//#else
+//        mouse_report.v = mouse_report.y;
+//#endif
+//        mouse_report.x = 0;
+//        mouse_report.y = 0;
+//    }
 
-        // Set timer if new motion
-        if ((MotionStart == 0) && data.isMotion) {
-            //if (debug_mouse) dprintf("Starting motion.\n");
-            MotionStart = timer_read();
-        }
-/*
-        if (debug_mouse) {
-            dprintf("Delt] d: %d t: %u\n", abs(data.dx) + abs(data.dy), MotionStart);
-        }
-        if (debug_mouse) {
-            dprintf("Pre ] X: %d, Y: %d\n", data.dx, data.dy);
-        }
-*/
-#if defined(PROFILE_LINEAR)
-        float scale = float(timer_elaspsed(MotionStart)) / 1000.0;
-        data.dx *= scale;
-        data.dy *= scale;
-#elif defined(PROFILE_INVERSE)
-        // TODO
-#else
-        // no post processing
-#endif
-        // apply multiplier
-        // data.dx *= mouse_multiplier;
-        // data.dy *= mouse_multiplier;
+    // myne - oops invert / reverse / upside down
+    mouse_report.x = mouse_report.x * -1;
+    mouse_report.y = mouse_report.y * -1;
 
-        // Wrap to HID size
-        data.dx = constrain(data.dx, -127, 127);
-        data.dy = constrain(data.dy, -127, 127);
-        //if (debug_mouse) dprintf("Cons] X: %d, Y: %d\n", data.dx, data.dy);
-        // dprintf("Elapsed:%u, X: %f Y: %\n", i, pgm_read_byte(firmware_data+i));
-
-        process_mouse_user(mouse_report, data.dx, data.dy);
-    }
+    return pointing_device_task_user(mouse_report);
 }
 
 bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
-/*
-    if (debug_mouse) {
-        dprintf("KL: kc: %u, col: %u, row: %u, pressed: %u\n", keycode, record->event.key.col, record->event.key.row, record->event.pressed);
-    }
-*/
-
-    pressed_state = pressed_state & ~(1 << record->event.key.col);
-    pressed_state |= record->event.pressed << record->event.key.col;
+//    if (debug_mouse) {
+//        dprintf("KL: kc: %u, col: %u, row: %u, pressed: %u\n", keycode, record->event.key.col, record->event.key.row, record->event.pressed);
+//    }
 
     // Update Timer to prevent accidental scrolls
     if ((record->event.key.col == 1) && (record->event.key.row == 0)) {
@@ -306,53 +263,32 @@ bool process_record_kb(uint16_t keycode, keyrecord_t* record) {
     if (keycode == DPI_CONFIG && record->event.pressed) {
         keyboard_config.dpi_config = (keyboard_config.dpi_config + 1) % DPI_OPTION_SIZE;
         eeconfig_update_kb(keyboard_config.raw);
-        pmw_set_cpi(dpi_array[keyboard_config.dpi_config]);
+        pointing_device_set_cpi(dpi_array[keyboard_config.dpi_config]);
     }
 
-/*
-    if (keycode == DRAG_SCROLL) {
-#ifndef PLOOPY_DRAGSCROLL_MOMENTARY
-        if (record->event.pressed)
-#endif
-        {
-            is_drag_scroll ^= 1;
-        }
-#ifdef PLOOPY_DRAGSCROLL_FIXED
-        pmw_set_cpi(is_drag_scroll ? PLOOPY_DRAGSCROLL_DPI : dpi_array[keyboard_config.dpi_config]);
-#else
-        pmw_set_cpi(is_drag_scroll ? (dpi_array[keyboard_config.dpi_config] * PLOOPY_DRAGSCROLL_MULTIPLIER) : dpi_array[keyboard_config.dpi_config]);
-#endif
-    }
-*/
-
-/* If Mousekeys is disabled, then use handle the mouse button
- * keycodes.  This makes things simpler, and allows usage of
- * the keycodes in a consistent manner.  But only do this if
- * Mousekeys is not enable, so it's not handled twice.
- */
-#ifndef MOUSEKEY_ENABLE
-    if (IS_MOUSEKEY_BUTTON(keycode)) {
-        report_mouse_t currentReport = pointing_device_get_report();
-        if (record->event.pressed) {
-            currentReport.buttons |= 1 << (keycode - KC_MS_BTN1);
-        } else {
-            currentReport.buttons &= ~(1 << (keycode - KC_MS_BTN1));
-        }
-        pointing_device_set_report(currentReport);
-        pointing_device_send();
-    }
-
-#endif
+//    if (keycode == DRAG_SCROLL) {
+//#ifndef PLOOPY_DRAGSCROLL_MOMENTARY
+//        if (record->event.pressed)
+//#endif
+//        {
+//            is_drag_scroll ^= 1;
+//        }
+//#ifdef PLOOPY_DRAGSCROLL_FIXED
+//        pointing_device_set_cpi(is_drag_scroll ? PLOOPY_DRAGSCROLL_DPI : dpi_array[keyboard_config.dpi_config]);
+//#else
+//        pointing_device_set_cpi(is_drag_scroll ? (dpi_array[keyboard_config.dpi_config] * PLOOPY_DRAGSCROLL_MULTIPLIER) : dpi_array[keyboard_config.dpi_config]);
+//#endif
+//    }
 
     return true;
 }
 
 // Hardware Setup
 void keyboard_pre_init_kb(void) {
-    //debug_enable  = true;
+    // debug_enable  = true;
     // debug_matrix  = true;
-    //debug_mouse   = true;
-    //debug_encoder = true;
+    // debug_mouse   = true;
+    // debug_encoder = true;
 
     setPinInput(HAL1);
     setPinInput(HAL2);
@@ -361,47 +297,28 @@ void keyboard_pre_init_kb(void) {
      * pathways to ground. If you're messing with this, know this: driving ANY
      * of these pins high will cause a short. On the MCU. Ka-blooey.
      */
-#ifdef UNUSED_PINS
-    const pin_t unused_pins[] = UNUSED_PINS;
+#ifdef UNUSABLE_PINS
+    const pin_t unused_pins[] = UNUSABLE_PINS;
 
-    for (uint8_t i = 0; i < (sizeof(unused_pins) / sizeof(pin_t)); i++) {
+    for (uint8_t i = 0; i < ARRAY_SIZE(unused_pins); i++) {
         setPinOutput(unused_pins[i]);
         writePinLow(unused_pins[i]);
     }
 #endif
 
+    // This is the debug LED.
+#if defined(DEBUG_LED_PIN)
+    setPinOutput(DEBUG_LED_PIN);
+    writePin(DEBUG_LED_PIN, debug_enable);
+#endif
+
     keyboard_pre_init_user();
 }
 
-void pointing_device_init(void) {
-    // initialize ball sensor
-    pmw_spi_init();
+void pointing_device_init_kb(void) {
+    pointing_device_set_cpi(dpi_array[keyboard_config.dpi_config]);
     // initialize the scroll wheel's optical encoder
-    //opt_encoder_init();
-}
-
-
-void pointing_device_task(void) {
-    report_mouse_t mouse_report = pointing_device_get_report();
-    process_wheel(&mouse_report);
-    process_mouse(&mouse_report);
-
-/*
-    if (is_drag_scroll) {
-        mouse_report.h = mouse_report.x;
-#ifdef PLOOPY_DRAGSCROLL_INVERT
-        // Invert vertical scroll direction
-        mouse_report.v = -mouse_report.y;
-#else
-        mouse_report.v = mouse_report.y;
-#endif
-        mouse_report.x = 0;
-        mouse_report.y = 0;
-    }
-*/
-
-    pointing_device_set_report(mouse_report);
-    pointing_device_send();
+//    opt_encoder_init(); // HAL sensor covered in init_kb ^
 }
 
 void eeconfig_init_kb(void) {
@@ -418,10 +335,4 @@ void matrix_init_kb(void) {
         eeconfig_init_kb();
     }
     matrix_init_user();
-}
-
-void keyboard_post_init_kb(void) {
-    pmw_set_cpi(dpi_array[keyboard_config.dpi_config]);
-
-    keyboard_post_init_user();
 }

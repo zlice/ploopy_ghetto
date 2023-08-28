@@ -1,7 +1,23 @@
 {
-    "keyboard_name": "PloopyCo Mouse",
+    "keyboard_name": "Mouse",
+    "manufacturer": "PloopyCo",
     "url": "www.ploopy.co",
     "maintainer": "drashna",
+    "usb": {
+        "vid": "0x5043",
+        "pid": "0x4D6F",
+        "device_version": "0.0.1"
+    },
+    "bootmagic": {
+        "matrix": [0, 4]
+    },
+    "processor": "atmega32u4",
+    "bootloader": "atmel-dfu",
+    "matrix_pins": {
+        "direct": [
+            ["B4", "E6", "B5", "D3", "D2", "D7"]
+        ]
+    },
     "layouts": {
         "LAYOUT": {
             "layout": [

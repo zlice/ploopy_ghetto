@@ -18,14 +18,15 @@
 
 #pragma once
 
-#include "config_common.h"
+//#include "config_common.h"
 
 /* USB Device descriptor parameter */
-#define VENDOR_ID 0x5043
-#define PRODUCT_ID 0x4D6F
-#define DEVICE_VER 0x0001
-#define MANUFACTURER PloopyCo
-#define PRODUCT Mouse
+// ffs - moved to info.json
+//#define VENDOR_ID 0x5043
+//#define PRODUCT_ID 0x4D6F
+//#define DEVICE_VER 0x0001
+//#define MANUFACTURER PloopyCo
+//#define PRODUCT Mouse
 
 /* key matrix size */
 #define MATRIX_ROWS 1
@@ -74,8 +75,10 @@
 //#define NO_ACTION_LAYER
 //#define NO_ACTION_TAPPING
 //#define NO_ACTION_ONESHOT
-#define NO_ACTION_MACRO
-#define NO_ACTION_FUNCTION
+
+// DEPRECATED
+//#define NO_ACTION_MACRO
+//#define NO_ACTION_FUNCTION
 
 /* Bootmagic Lite key configuration */
 #define BOOTMAGIC_LITE_ROW 0
@@ -93,4 +96,8 @@
 /* PMW3360 Settings */
 // myne
 // this is SS ?
-#define PMW3360_CS_PIN B6
+// 2023 aug 10
+// this isn't getting picked up now? tries to compile pmw3360 first...
+// need 33XX (CAPITAL) now ?
+//#define PMW3360_CS_PIN B6
+#define PMW33XX_CS_PIN B6
